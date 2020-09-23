@@ -4,6 +4,8 @@ logLevel := Level.Warn
 // The Typesafe repository 
 resolvers += "Maven Central Server" at "https://repo1.maven.org/maven2"
 
+resolvers += "Typesafe repository" at "http://repo.typesafe.com/typesafe/releases/"
+
 resolvers += "Typesafe Server" at "https://repo.typesafe.com/typesafe/releases"
 
 // Use the Play sbt plugin for Play projects

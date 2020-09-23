@@ -54,6 +54,3 @@ RjsKeys.paths += ("jsRoutes" -> ("/jsroutes" -> "empty:"))
 
 packageName in Universal := "newsleak-ui"
 
-resolvers += "Maven Central Server" at "https://repo1.maven.org/maven2"
-
-resolvers += "Typesafe Server" at "https://repo.typesafe.com/typesafe/releases"
