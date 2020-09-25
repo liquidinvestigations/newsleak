@@ -7,12 +7,13 @@ RUN mvn clean package assembly:single
 
 FROM mozilla/sbt:8u232_1.3.13 as sbt-builder
 RUN mkdir -p /usr/src/ui
+WORKDIR /usr/src/ui
 COPY --from=mvn-builder /usr/src/app ./preprocessing
 COPY build.sbt .
-COPY project .
-COPY app .
-COPY conf .
-COPY public .
+COPY project ./project
+COPY app ./app
+COPY conf ./conf
+RUN apt-get update && apt-get install make
 RUN sbt dist 
 RUN unzip target/universal/newsleak-ui.zip -d target/universal/
 
