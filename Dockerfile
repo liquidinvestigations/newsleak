@@ -47,7 +47,7 @@ RUN chown newsleak:newsleak /opt/newsleak/data
 
 ADD newsleak-start.sh .
 
-USER newsleak
+# USER newsleak, commented the line. Changing user in entrypoint instead of Dockerfile.
 
 EXPOSE 9000
 
