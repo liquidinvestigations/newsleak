@@ -47,7 +47,7 @@ RUN chown newsleak:newsleak /opt/newsleak/data
 
 ADD newsleak-start.sh .
 
-USER newsleak
+# USER newsleak, line uncommented so that the user at the end of the entrypoint is still root and can change the permission of the folders which are created by the docker daemon
 
 EXPOSE 9000
 
