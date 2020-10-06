@@ -2,8 +2,6 @@ FROM maven:latest as mvn-builder
 
 WORKDIR /usr/src/app
 
-RUN groupadd -g 999 newsleak && useradd -r -u 999 -g newsleak newsleak
-
 COPY --chown=999:999 preprocessing .
 RUN mvn clean package assembly:single
 
@@ -21,7 +19,7 @@ RUN sbt dist
 RUN unzip target/universal/newsleak-ui.zip -d target/universal/
 
 FROM openjdk:11.0.2-jdk-slim-stretch
-
+RUN groupadd -g 999 newsleak && useradd -r -u 999 -g newsleak newsleak
 RUN apt-get update && apt-get install -y \
   curl \
   apt-transport-https \
