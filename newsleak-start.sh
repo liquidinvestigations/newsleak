@@ -4,5 +4,4 @@ rm -f RUNNING_PID
 cp -n -r conf /etc/settings/
 cp -n -r data /etc/settings/
 chown newsleak:newsleak -R /etc/settings/
-su - newsleak -c "env NEWSLEAK_CONFIG=/etc/settings/conf/application.production.conf"
-su - newsleak -c "bin/newsleak -Dconfig.file=/etc/settings/conf/application.production.conf"
+gosu  newsleak /bin/sh -c 'bin/newsleak -Dconfig.file=/etc/settings/conf/application.production.conf'

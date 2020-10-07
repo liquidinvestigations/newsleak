@@ -25,6 +25,11 @@ RUN apt-get update && apt-get install -y \
   apt-transport-https \
   gnupg
 
+RUN set -eux; \
+	apt-get install -y gosu; \
+	rm -rf /var/lib/apt/lists/*; \
+# verify that the binary works
+	gosu nobody true
 
 RUN mkdir -p /opt/newsleak
 RUN chown newsleak:newsleak /opt/newsleak
@@ -47,7 +52,7 @@ RUN chown newsleak:newsleak /opt/newsleak/data
 
 ADD newsleak-start.sh .
 
-# USER newsleak, commented the line. Changing user in entrypoint instead of Dockerfile.
+ENV NEWSLEAK_CONFIG=/etc/settings/conf/application.production.conf
 
 EXPOSE 9000
 
