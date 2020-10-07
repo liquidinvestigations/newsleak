@@ -6,8 +6,6 @@ trigger:
   - push
   - tag
 
-cache_from: "laszlocloud/cache-from-test:latest"
-
 steps:
 - name: docker push branch ${DRONE_COMMIT_BRANCH}
   image: plugins/docker
@@ -18,6 +16,7 @@ steps:
       from_secret: docker_username
     password:
       from_secret: docker_password
+    cache_from: "laszlocloud/cache-from-test:latest"
   when:
     branch:
       excludes:
