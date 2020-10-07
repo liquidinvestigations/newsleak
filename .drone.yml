@@ -16,7 +16,7 @@ steps:
       from_secret: docker_username
     password:
       from_secret: docker_password
-    cache_from: "laszlocloud/cache-from-test:latest"
+    cache_from: "liquidinvestigations/newsleak:multi-stage"
   when:
     branch:
       excludes:
