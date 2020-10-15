@@ -2,18 +2,18 @@ FROM maven:latest as mvn-builder
 
 WORKDIR /usr/src/app
 
-COPY --chown=999:999 preprocessing .
+COPY preprocessing .
 RUN mvn clean package assembly:single
 
 
 FROM mozilla/sbt:8u232_1.3.13 as sbt-builder
 RUN mkdir -p /usr/src/ui
 WORKDIR /usr/src/ui
-COPY --from=mvn-builder --chown=999:999 /usr/src/app ./preprocessing
-COPY --chown=999:999 build.sbt .
-COPY --chown=999:999 project ./project
-COPY --chown=999:999 app ./app
-COPY --chown=999:999 conf ./conf
+COPY --from=mvn-builder /usr/src/app ./preprocessing
+COPY  build.sbt .
+COPY  project ./project
+COPY  app ./app
+COPY  conf ./conf
 RUN apt-get update && apt-get install make
 RUN sbt dist 
 RUN unzip target/universal/newsleak-ui.zip -d target/universal/
