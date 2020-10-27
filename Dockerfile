@@ -8,13 +8,27 @@ RUN mvn clean package assembly:single
 
 FROM mozilla/sbt:8u232_1.3.13 as sbt-builder
 RUN mkdir -p /usr/src/ui
+RUN chown 999:999 /usr/src/ui
+RUN mkdir -p /home/sbt
+RUN chown 999:999 /home/sbt
 WORKDIR /usr/src/ui
-COPY --from=mvn-builder /usr/src/app ./preprocessing
-COPY  build.sbt .
-COPY  project ./project
-COPY  app ./app
-COPY  conf ./conf
+COPY --from=mvn-builder --chown=999:999 /usr/src/app ./preprocessing
+COPY  --chown=999:999 build.sbt .
+COPY --chown=999:999 package-lock.json .
+COPY --chown=999:999 package.json .
+COPY --chown=999:999 README.md . 
+COPY  --chown=999:999 project ./project
+COPY  --chown=999:999 app ./app
+COPY  --chown=999:999 conf ./conf
+COPY --chown=999:999 bower.json .
+COPY --chown=999:999 public ./public
+RUN apt-get update
+RUN apt-get -y install curl gnupg
 RUN apt-get update && apt-get install make
+RUN curl -sL https://deb.nodesource.com/setup_15.x  | bash -
+RUN apt-get -y install nodejs
+USER 999
+RUN npm install 
 RUN sbt dist 
 RUN unzip target/universal/newsleak-ui.zip -d target/universal/
 
@@ -38,7 +52,7 @@ WORKDIR /opt/newsleak
 
 COPY --from=sbt-builder --chown=999:999 /usr/src/ui/target/universal/newsleak-ui .
 RUN rm conf/*.conf
-ADD --chown=999:999 conf/application.production.conf conf/
+ADD --chown=999:999 conf/application.production.conf conf/application.production.conf
 
 COPY --from=sbt-builder --chown=999:999  /usr/src/ui/preprocessing/target/preprocessing-jar-with-dependencies.jar preprocessing.jar
 COPY --from=sbt-builder --chown=999:999 /usr/src/ui/preprocessing/conf/dictionaries conf/dictionaries/

@@ -46,6 +46,9 @@
   },
   "resolutions": {
     "angular": "1.4.14",
-    "screenfull": "4.0.0"
+    "screenfull": "4.0.0",
+    "angular-aria": "^1.7.2",
+    "angular-animate": "^1.7.2",
+    "angular-messages": "^1.7.2"
   }
 }
