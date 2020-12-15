@@ -220,30 +220,34 @@ define([
             [
                 '$scope',
                 '$http',
+                '$q',
                 '$templateRequest',
                 '$sce',
                 '$timeout',
+                '$uibModal',
+                '$log',
+                '$document',
+                '$filter',
                 'playRoutes',
                 '_',
                 'sourceShareService',
                 'ObserverService',
                 'EntityService',
-                '$uibModal',
-                '$log',
-                '$document',
                 function ($scope,
                           $http,
+                          $q,
                           $templateRequest,
                           $sce,
                           $timeout,
+                          $uibModal,
+                          $log,
+                          $document,
+                          $filter,
                           playRoutes,
                           _,
                           sourceShareService,
                           ObserverService,
-                          EntityService,
-                          $uibModal,
-                          $log,
-                          $document) {
+                          EntityService) {
 
                     var self = this;
 
@@ -254,6 +258,10 @@ define([
                     // Maps from doc id to list of tags
                     $scope.tags = {};
                     $scope.labels = $scope.sourceShared.labels;
+                    // data for similar documents
+                    $scope.similarDocsAvailable = false;
+                    $scope.numOfSimilarDocs = 10;
+                    $scope.similarDocuments = [];
 
                     self.numKeywords = 15;
 
@@ -352,6 +360,7 @@ define([
                               }
                           }
                         });
+                        console.log('returning Terms: ' + terms)
                         return terms;
                     };
 
@@ -589,7 +598,7 @@ define([
                           $scope.createInitKeyword(keyword, doc);
                         }
                       });
-                    }
+                    };
 
                     $scope.createInitKeyword = function(keyword, doc) {
                       playRoutes.controllers.DocumentController
@@ -598,7 +607,7 @@ define([
                         $scope.reloadDoc(doc);
                         EntityService.reloadKeywordGraph(true);
                       });
-                    }
+                    };
 
                     $scope.createNewKeyword = function(keyword, doc) {
                       playRoutes.controllers.DocumentController
@@ -607,7 +616,7 @@ define([
                         $scope.reloadDoc(doc);
                         EntityService.reloadKeywordGraph(true);
                       });
-                    }
+                    };
 
                     $scope.esWhitelist = function(entity, typeEnt, doc) {
                       playRoutes.controllers.DocumentController
@@ -619,7 +628,7 @@ define([
                           $scope.createInitEntity(entity, typeEnt, doc);
                         }
                       });
-                    }
+                    };
 
                     $scope.createInitEntity = function(entity, typeEnt, doc, entId = null) {
                       entId = entId === null ? $scope.esNewId : entId;
@@ -630,7 +639,7 @@ define([
                             :
                             $scope.createInitEntityType(entity, typeEnt, doc);
                       });
-                    }
+                    };
 
                     $scope.createNewEntity = function(entity, typeEnt, doc, entId = null) {
                       entId = entId === null ? $scope.esNewId : entId;
@@ -641,7 +650,7 @@ define([
                             :
                             $scope.createInitEntityType(entity, typeEnt, doc);
                       });
-                    }
+                    };
 
                     $scope.checkNewEntityType = function(entity, typeEnt, doc, entId = null) {
                       typeEnt = typeEnt.toLowerCase();
@@ -654,7 +663,7 @@ define([
                           $scope.createInitEntityType(entity, typeEnt, doc);
                         }
                       });
-                    }
+                    };
 
                     $scope.createNewEntityType = function(entity, typeEnt, doc, entId = null) {
                       var suffixType = typeEnt.toLowerCase();
@@ -666,7 +675,7 @@ define([
                         $scope.reloadDoc(doc);
                         EntityService.reloadEntityGraph();
                       });
-                    }
+                    };
 
 
                     $scope.createInitEntityType = function(entity, typeEnt, doc) {
@@ -681,7 +690,7 @@ define([
                         $scope.reloadDoc(doc);
                         EntityService.reloadEntityGraph();
                       });
-                    }
+                    };
 
                     $scope.blacklists = [];
                     $scope.loadBlacklists = function(doc) {
@@ -701,7 +710,115 @@ define([
                             }
                         });
                       });
-                    }
+                    };
+
+                    //gets the ids and similarity scores (Lucene score) of similar documents from elasticsearch
+                    $scope.getSimilarDocsElasticsearch = function (doc) {
+                        console.log("Getting similar documents with method 'Elastic for document:" + doc.id);
+                        var docids = [];
+                        var docIdsAndScores = [];
+                        var similarDocs = [];
+                        playRoutes.controllers.DocumentController.getMoreLikeThis(doc.id, $scope.numOfSimilarDocs).get().then(function(response) {
+                            docids = Object.keys(response.data);
+                            docIdsAndScores = response.data;
+                            return $scope.getDocs(docids, docIdsAndScores, true);
+                             }).then( function(transformedDocs) {
+                                transformedDocs.map(doc => similarDocs.push(doc));
+                        });
+                        return similarDocs;
+                        };
+
+                    //gets documents for the before retrieved ids, transforms them in the necessary structure and adds them to the list of similar documents
+                    $scope.getDocs = function (docids, docIdsAndScores, reverseOrder) {
+                        return playRoutes.controllers.DocumentController.getDocsByIds(docids).get().then(function(response) {
+                            var docs = response.data.docs;
+                            console.log ("getting transformed docs");
+                            var transformedDocs = $scope.transformDocuments(docs, docIdsAndScores);
+                            return transformedDocs;
+                        });
+                    };
+
+                    //transforms the documents into the data structure that is required by the document list view. All content remains unchanged
+                    $scope.transformDocuments = function (docs, docIdsAndScores) {
+                        var transformedDocs = [];
+                        angular.forEach(docs, function (doc) {
+                            var currentDoc = {
+                                id: doc.id,
+                                content: doc.content,
+                                highlighted: doc.highlighted,
+                                score: docIdsAndScores[doc.id],
+                                metadata: {}
+                            };
+
+                            //transforms metadata into the data structure required by the document list viewe
+                            angular.forEach(doc.metadata, function (metadata) {
+                                if (!currentDoc.metadata.hasOwnProperty(metadata.key)) {
+                                    currentDoc.metadata[metadata.key] = [];
+                                }
+                                currentDoc.metadata[metadata.key].push({
+                                    'val': metadata.val,
+                                    'type': metadata.type
+                                });
+                            });
+
+                            transformedDocs.push(currentDoc);
+                        });
+                        console.log ("returning " + transformedDocs.length + " transformed documents" );
+                        return transformedDocs;
+                    };
+
+                    $scope.similarDocsAvailable = function(doc) {
+                       if ($scope.similarDocuments.some((item) => item.similarityParent == doc.id)) {
+                        return true;
+                       }
+                       else {
+                       return false;
+                       }
+                    };
+
+                    //opens a document
+                    $scope.loadFullDocument = function (doc) {
+                        EntityService.setToggleEntityGraph(true);
+                        EntityService.setToggleKeywordGraph(false);
+
+                        // Focus open tab if document is already opened
+                        if ($scope.isDocumentOpen(doc.id)) {
+                            var index = _.findIndex($scope.sourceShared.tabs, function (t) {
+                                return t.id == doc.id;
+                            });
+                            // Skip first network tab
+                            $scope.selectedTab.index = index + 1;
+                        } else {
+                            var editItem = {
+                                type: 'openDoc',
+                                data: {
+                                    id: doc.id,
+                                    description: "#" + doc.id,
+                                    item: "#" + doc.id
+                                }
+                            };
+                            $scope.observer.addItem(editItem);
+
+                            playRoutes.controllers.EntityController.getEntitiesByDoc(doc.id).get().then(function (response) {
+                                // Provide document controller with document information
+                                $scope.sourceShared.tabs.push({
+                                    id: doc.id,
+                                    title: doc.id,
+                                    content: doc.content,
+                                    highlighted: doc.highlighted,
+                                    meta: doc.metadata,
+                                    entities: response.data
+                                });
+                            });
+                        }
+                    };
+
+                    $scope.isDocumentOpen = function (id) {
+                        var index = _.findIndex($scope.sourceShared.tabs, function (t) {
+                            return t.id == id;
+                        });
+                        return index != -1;
+                    };
 
                     function isBlacklisted(entity, type, isKeyword) {
                       var isBlacklisted = [];

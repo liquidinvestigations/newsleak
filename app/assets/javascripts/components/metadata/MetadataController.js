@@ -633,7 +633,7 @@ define([
                         });
                         return defer.promise;
                     };
-
+                    // TODO: Find out, whether this function should be registered as callback for subscribeReset instead of initMetadataView
                     $scope.resetMetadataView = function() {
                         $scope.initMetadataView().then(function() {
                             $scope.updateMetadataView();

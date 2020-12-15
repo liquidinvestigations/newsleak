@@ -211,6 +211,7 @@ define([
 
                             playRoutes.controllers.EntityController.getEntitiesByDoc(doc.id).get().then(function (response) {
                                 // Provide document controller with document information
+                                console.log("got Document: " + doc.id);
                                 $scope.sourceShared.tabs.push({
                                     id: doc.id,
                                     title: doc.id,

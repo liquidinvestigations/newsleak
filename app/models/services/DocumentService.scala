@@ -19,6 +19,8 @@ package models.services
 
 import com.google.inject.{ ImplementedBy, Inject }
 import org.joda.time.LocalDateTime
+import org.elasticsearch.index.query.MoreLikeThisQueryBuilder.Item
+import org.elasticsearch.index.query.{ MoreLikeThisQueryBuilder, QueryBuilder, QueryBuilders }
 
 import scala.collection.mutable.ArrayBuffer
 // scalastyle:off
@@ -31,6 +33,7 @@ import models.{ Document, Facets, KeyTerm, Tag }
 import util.es.{ ESRequestUtils, SearchHitIterator }
 import util.RichString.richString
 import util.NewsleakConfigReader
+import org.elasticsearch.search
 
 /**
  * Defines common data access methods for retrieving and annotating documents.
@@ -73,7 +76,6 @@ trait DocumentService {
    * @return a tuple consisting of the total number of hits and a document iterator for the given query.
    */
   def searchDocuments(facets: Facets, pageSize: Int)(index: String): (Long, Iterator[Document])
-
   /**
    * Returns an Object to determine whether entity field in elasticsearch exists or not.
    *
@@ -81,6 +83,8 @@ trait DocumentService {
    * @param index the data source index or database name to query.
    * @return an Object consisting of the total number of entity in elasticsearch
    */
+  def searchMoreLikeThis(id: String, numOfDocs: Int)(index: String): Map[String, Float]
+
   def getDocumentEntities(docId: String)(index: String): Object
 
   /**
@@ -429,6 +433,22 @@ abstract class ESDocumentService(clientService: SearchClientService, utils: ESRe
         Document(id, content, LocalDateTime.now, highlight)
       }
     })
+  }
+
+  /** @inheritdoc */
+  override def searchMoreLikeThis(id: String, numOfDocs: Int)(index: String): Map[String, Float] = {
+    val item: Item = new Item(index, "document", id)
+    val queryBuilder = QueryBuilders.moreLikeThisQuery(utils.docContentField).like(item);
+    val requestBuilder = clientService.client.prepareSearch(index)
+      .setQuery(queryBuilder)
+      .setSize(numOfDocs)
+      .addFields("id") // We are only interested in the document id
+
+    val response = requestBuilder.execute().actionGet();
+    val hits = response.getHits().hits();
+    val idsAndScores: Map[String, Float] = hits.map(hit => (hit.getId, hit.getScore)).toMap;
+
+    idsAndScores
   }
 
   /** newsleak version 2.0.0: document whitelisting */

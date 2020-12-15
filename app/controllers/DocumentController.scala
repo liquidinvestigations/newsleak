@@ -315,6 +315,13 @@ class DocumentController @Inject() (
     Ok(createJsonResponse(docs, ids.size))
   }
 
+  def getMoreLikeThis(id: String, numOfDocs: Int) = Action { implicit request =>
+
+    val idsAndScores = documentService.searchMoreLikeThis(id, numOfDocs)(currentDataset);
+
+    Ok(Json.toJson(idsAndScores)).as("application/json")
+  }
+
   private def createJsonResponse(docList: List[Document], hits: Long)(implicit request: Request[AnyContent]): JsValue = {
     if (docList.nonEmpty) {
       val keys = documentService.getMetadataKeys()(currentDataset)
